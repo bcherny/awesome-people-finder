@@ -8,9 +8,9 @@ import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Network.HTTP.Types.Status (statusCode)
 
-logResponse :: Maybe L8.ByteString -> IO ()
-logResponse Nothing = L8.putStrLn "Error"
-logResponse (Just a) = L8.putStrLn a
+logResponse :: Show a => Maybe a -> IO ()
+logResponse Nothing = putStrLn "Error"
+logResponse (Just a) = putStrLn $ show a
 
 isFailure :: Response L8.ByteString -> Bool
 isFailure response

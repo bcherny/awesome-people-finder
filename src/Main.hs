@@ -9,12 +9,12 @@ import Network.HTTP.Client.TLS
 import Network.HTTP.Types.Status (statusCode)
 
 import Github (getRepos)
-import Utils (logResponse, processResponse)
+import Utils (logResponse)
 
 main :: IO ()
 main = do
-  response <- getRepos
-  logResponse $ processResponse response
+  repos <- getRepos
+  logResponse repos
 
 
 
