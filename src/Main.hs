@@ -2,21 +2,27 @@
 
 module Main where
 
-import Data.Aeson (encode, object, (.=))
-import qualified Data.ByteString.Lazy.Char8 as L8
-import Network.HTTP.Client
-import Network.HTTP.Client.TLS
-import Network.HTTP.Types.Status (statusCode)
+import Control.Monad (join)
 
-import Github (getRepos)
+import Github (getContributors, getRepos)
 import Utils (logResponse)
 
 main :: IO ()
 main = do
   repos <- getRepos
-  logResponse repos
+
+  case repos of
+    Just rs -> do
+      cs <- map (\(a, b) -> getContributors a b) repos
+      logResponse cs
+    Nothing -> Nothing
+
+  -- repos <- getRepos
+  -- fmap (\r -> map (\(a, b) -> getContributors a b)) repos
 
 
+-- get :: (Maybe [(String, String)]) -> Maybe [String]
+-- get m = m >>= (\as -> map (\(a, b) -> getContributors a b)) as
 
 
 
