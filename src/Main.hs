@@ -1,8 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
-
-import Control.Monad (join)
 
 import Github (getContributors, getRepos)
 import Utils (logResponse)
