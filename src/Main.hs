@@ -15,7 +15,7 @@ main = do
   case repos of
     Just r -> do
       print $ take 1 r
-      cs <- get (take 1 r)    -- [String]
+      cs <- get $ take 1 r    -- [String]
       print cs
     Nothing -> return ()
 
