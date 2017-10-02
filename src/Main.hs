@@ -9,21 +9,15 @@ import Utils (logResponse)
 
 main :: IO ()
 main = do
-  repos <- getRepos
+
+  repos <- getRepos           -- Maybe [(String, String)]
 
   case repos of
-    Just rs -> do
-      cs <- map (\(a, b) -> getContributors a b) repos
-      logResponse cs
-    Nothing -> Nothing
+    Just r -> do
+      print $ take 1 r
+      cs <- get (take 1 r)    -- [String]
+      print cs
+    Nothing -> return ()
 
-  -- repos <- getRepos
-  -- fmap (\r -> map (\(a, b) -> getContributors a b)) repos
-
-
--- get :: (Maybe [(String, String)]) -> Maybe [String]
--- get m = m >>= (\as -> map (\(a, b) -> getContributors a b)) as
-
-
-
-
+get :: [(String, String)] -> IO [String]
+get repos = fmap concat $ mapM (uncurry getContributors) repos

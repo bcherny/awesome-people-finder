@@ -17,14 +17,14 @@ import Utils (processResponse)
 
 --------------- getContributors ---------------
 
-getContributors :: String -> String -> IO (Maybe [String])
+getContributors :: String -> String -> IO [String]
 getContributors repoName repoOwner = do
 
-  (flattenContributorsResponse . decodeContributorsResponse . processResponse) <$> (getContributors' 1)
+  (flattenContributorsResponse . decodeContributorsResponse . processResponse) <$> getContributors'
 
   where
-    getContributors' :: Int -> IO (Response L8.ByteString)
-    getContributors' page = do
+    getContributors' :: IO (Response L8.ByteString)
+    getContributors' = do
       manager <- newManager tlsManagerSettings
       initialRequest <- parseRequest "https://api.github.com/graphql"
       let query = "{\
@@ -43,9 +43,9 @@ getContributors repoName repoOwner = do
       httpLbs request manager
 
 -- TODO: input type should be Contributors (no Maybe)
-flattenContributorsResponse :: Maybe Contributors -> Maybe [String]
-flattenContributorsResponse Nothing = Nothing
-flattenContributorsResponse (Just cs) = Just (map (\e -> login $ author $ node e) (edges $ commitComments $ repository $ data' cs))
+flattenContributorsResponse :: Maybe Contributors -> [String]
+flattenContributorsResponse Nothing = []
+flattenContributorsResponse (Just cs) = (map (\e -> login $ author $ node e) (edges $ commitComments $ repository $ data' cs))
 
 -- TODO: input type should be L8.ByteString (no Maybe)
 decodeContributorsResponse :: Maybe L8.ByteString -> Maybe Contributors

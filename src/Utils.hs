@@ -20,5 +20,4 @@ isFailure response
 processResponse :: Response L8.ByteString -> Maybe L8.ByteString
 processResponse response = case isFailure response of
   True -> Nothing
-  False ->
-    Just $ responseBody response
+  False -> Just $ responseBody response
