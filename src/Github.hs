@@ -7,7 +7,7 @@ module Github (getContributors, getRepos) where
 import GHC.Generics
 import Data.Aeson (FromJSON(..), ToJSON(..), decode, encode, object, Value(Object), (.=), (.:), withObject)
 import qualified Data.ByteString.Lazy.Char8 as L8
-import Data.ByteString.Char8 (pack)
+import Data.List (nub)
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Network.HTTP.Types.Status (statusCode)
@@ -19,27 +19,28 @@ import Utils (processResponse)
 
 getContributors :: String -> String -> IO [String]
 getContributors repoName repoOwner = do
-
-  (flattenContributorsResponse . decodeContributorsResponse . processResponse) <$> getContributors'
+  -- print a
+  nub . flattenContributorsResponse . decodeContributorsResponse . processResponse <$> getContributors'
 
   where
     getContributors' :: IO (Response L8.ByteString)
     getContributors' = do
       manager <- newManager tlsManagerSettings
       initialRequest <- parseRequest "https://api.github.com/graphql"
-      let query = "{\
-        \repository(name: \"" ++ repoName ++ "\", owner: \"" ++ repoOwner ++ "\") {\
-          \commitComments(first: 100) {\
-            \edges {\
-              \node {\
-                \author {\
-                  \login\
-                \}}}}}}"
+
+      -- TODO: generate GraphQL from DSL
+      let query = "{\"query\":\"query {repository(name: \\\"" ++ repoName ++ "\\\", owner: \\\"" ++ repoOwner ++ "\\\") { commitComments(first: 100) { edges { node { author { login }}}}}}\",\"variables\":{}}"
+
       let request = initialRequest {
         method = "POST",
-        requestBody = RequestBodyBS $ pack query,
-        requestHeaders = [("User-Agent", "Haskell")]
+        requestBody = RequestBodyLBS $ L8.pack query,
+        requestHeaders = [
+          ("User-Agent", "Haskell"),
+          ("Authorization", "Bearer 59d9f83eec558629de17523a806646d2652fd773")
+        ]
       }
+      -- print query
+      -- print request
       httpLbs request manager
 
 -- TODO: input type should be Contributors (no Maybe)
