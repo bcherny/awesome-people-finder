@@ -6,6 +6,7 @@ module Github (getContributors, getRepos) where
 
 import GHC.Generics
 import Data.Aeson (FromJSON(..), ToJSON(..), decode, encode, object, Value(Object), (.=), (.:), withObject)
+import Data.ByteString.Char8 (pack)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.List (nub)
 import Network.HTTP.Client
@@ -17,8 +18,8 @@ import Utils (processResponse)
 
 --------------- getContributors ---------------
 
-getContributors :: String -> String -> IO [String]
-getContributors repoName repoOwner = do
+getContributors :: String -> String -> String -> IO [String]
+getContributors token repoName repoOwner = do
   -- print a
   nub . flattenContributorsResponse . decodeContributorsResponse . processResponse <$> getContributors'
 
@@ -35,8 +36,8 @@ getContributors repoName repoOwner = do
         method = "POST",
         requestBody = RequestBodyLBS $ L8.pack query,
         requestHeaders = [
-          ("User-Agent", "Haskell"),
-          ("Authorization", "Bearer 59d9f83eec558629de17523a806646d2652fd773")
+          ("Authorization", pack $ "Bearer " ++ token),
+          ("User-Agent", "Haskell")
         ]
       }
       -- print query
@@ -55,8 +56,8 @@ decodeContributorsResponse (Just raw) = decode raw
 
 --------------- getRepos ---------------
 
-getRepos :: IO (Maybe [(String, String)])
-getRepos = do
+getRepos :: String -> IO (Maybe [(String, String)])
+getRepos token = do
   (flattenReposResponse . decodeReposResponse . processResponse) <$> (getRepos' 1)
 
   where
@@ -65,7 +66,10 @@ getRepos = do
       manager <- newManager tlsManagerSettings
       initialRequest <- parseRequest "https://api.github.com/search/repositories"
       let request = initialRequest {
-        requestHeaders = [("User-Agent", "Haskell")],
+        requestHeaders = [
+          ("Authorization", pack $ "Bearer " ++ token),
+          ("User-Agent", "Haskell")
+        ],
         queryString = "q=language:typescript&sort=stars"
       }
       httpLbs request manager

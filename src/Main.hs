@@ -1,6 +1,7 @@
 module Main where
 
 import Data.List (nub)
+import System.Environment (lookupEnv)
 
 import Github (getContributors, getRepos)
 import Utils (logResponse)
@@ -8,17 +9,20 @@ import Utils (logResponse)
 main :: IO ()
 main = do
 
-  -- a <- get [("vscode","Microsoft")]
-  -- print a
+  token <- lookupEnv "GITHUB_TOKEN"
 
-  repos <- getRepos           -- Maybe [(String, String)]
+  case token of
+    Nothing -> error "Please define env var GITHUB_TOKEN"
+    Just t -> do
 
-  case repos of
-    Just r -> do
-      print $ take 3 r
-      cs <- get $ take 3 r    -- [String]
-      print cs
-    Nothing -> return ()
+      repos <- getRepos t           -- Maybe [(String, String)]
 
-get :: [(String, String)] -> IO [String]
-get repos = fmap (nub . concat) $ mapM (uncurry getContributors) repos
+      case repos of
+        Just r -> do
+          print $ take 3 r
+          cs <- get t $ take 3 r    -- [String]
+          print cs
+        Nothing -> return ()
+
+get :: String -> [(String, String)] -> IO [String]
+get token repos = fmap (nub . concat) $ mapM (uncurry $ getContributors token) repos
