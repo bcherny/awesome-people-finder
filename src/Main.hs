@@ -3,7 +3,7 @@ module Main where
 import Data.List (nub)
 import System.Environment (lookupEnv)
 
-import Github (getContributors, getRepos)
+import Github (getContributors, getRepos, getUserData)
 import Utils (logResponse)
 
 main :: IO ()
@@ -19,9 +19,17 @@ main = do
 
       case repos of
         Just r -> do
-          print $ take 3 r
-          cs <- get t $ take 3 r    -- [String]
-          print cs
+          print $ take 1 r
+          contribs <- get t $ take 1 r    -- [String]
+          print contribs
+
+          us <- mapM (getUserData t) (take 5 contribs)
+
+          print us
+
+          -- case u of
+          --   Just t -> print t
+          --   Nothing -> return ()
         Nothing -> return ()
 
 get :: String -> [(String, String)] -> IO [String]

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Github (getContributors, getRepos) where
+module Github (getContributors, getRepos, getUserData) where
 
 import GHC.Generics
 import Data.Aeson (FromJSON(..), ToJSON(..), decode, encode, object, Value(Object), (.=), (.:), withObject)
@@ -15,6 +15,43 @@ import Network.HTTP.Types.Status (statusCode)
 import Control.Monad (mzero)
 
 import Utils (processResponse)
+
+--------------- getUserData ---------------
+
+getUserData :: String -> String -> IO (Maybe (String, String, String))
+getUserData token username = do
+  -- print a
+  flattenUserDataResponse . decodeUserDataResponse . processResponse <$> getUserData'
+
+  where
+    getUserData' :: IO (Response L8.ByteString)
+    getUserData' = do
+      manager <- newManager tlsManagerSettings
+      initialRequest <- parseRequest "https://api.github.com/graphql"
+
+      -- TODO: generate GraphQL from DSL
+      let query = "{\"query\":\"query {user(login: \\\"" ++ username ++ "\\\") {email, location, login }}\",\"variables\":{}}"
+
+      let request = initialRequest {
+        method = "POST",
+        requestBody = RequestBodyLBS $ L8.pack query,
+        requestHeaders = [
+          ("Authorization", pack $ "Bearer " ++ token),
+          ("User-Agent", "Haskell")
+        ]
+      }
+      httpLbs request manager
+
+-- TODO: input type should be Contributors (no Maybe)
+flattenUserDataResponse :: Maybe Location -> Maybe (String, String, String)
+flattenUserDataResponse Nothing = Nothing
+flattenUserDataResponse (Just cs) = Just (login' u, email u, location u)
+  where u = user $ locationData' cs
+
+-- TODO: input type should be L8.ByteString (no Maybe)
+decodeUserDataResponse :: Maybe L8.ByteString -> Maybe Location
+decodeUserDataResponse Nothing = Nothing
+decodeUserDataResponse (Just raw) = decode raw
 
 --------------- getContributors ---------------
 
@@ -97,18 +134,18 @@ instance ToJSON Repos
 
 data Repo = Repo {
   name :: String,
-  owner :: User
+  owner :: Actor
 } deriving (Show, Generic)
 
 instance FromJSON Repo
 instance ToJSON Repo
 
-data User = User {
+data Actor = Actor {
   login :: String
 } deriving (Show, Generic)
 
-instance FromJSON User
-instance ToJSON User
+instance FromJSON Actor
+instance ToJSON Actor
 
 data Contributors = Contributors {
   data' :: ContributorsData
@@ -151,8 +188,45 @@ instance FromJSON CommentEdge
 instance ToJSON CommentEdge
 
 data CommentNode = CommentNode {
-  author :: User
+  author :: Actor
 } deriving (Show, Generic)
 
 instance FromJSON CommentNode
 instance ToJSON CommentNode
+
+------
+
+-- UGLY! See https://ghc.haskell.org/trac/ghc/wiki/Records
+data Location = Location {
+  locationData' :: LocationData
+} deriving (Show)
+
+instance FromJSON Location where
+  parseJSON (Object x) = Location <$> x .: "data"
+  parseJSON _ = mzero
+
+instance ToJSON Location where
+  toJSON (Location locationData') = object
+    [ "data" .= locationData']
+
+data LocationData = LocationData {
+  user :: User
+} deriving (Generic, Show)
+instance FromJSON LocationData
+instance ToJSON LocationData
+
+data User = User {
+  email :: String,
+  location :: String,
+  login' :: String
+} deriving (Show)
+
+instance FromJSON User where
+  parseJSON (Object x) = User <$> x .: "email"
+                              <*> x .: "location"
+                              <*> x .: "login"
+  parseJSON _ = mzero
+
+instance ToJSON User where
+  toJSON (User email location login') = object
+    [ "email" .= email, "location" .= location, "login" .= login']

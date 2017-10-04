@@ -3,6 +3,7 @@
 module Utils (logResponse, processResponse) where
 
 import qualified Data.ByteString.Lazy.Char8 as L8
+import Debug.Trace (trace)
 import Network.HTTP.Client
 import Network.HTTP.Types.Status (statusCode)
 
@@ -16,6 +17,7 @@ isFailure response
   | otherwise = True
 
 processResponse :: Response L8.ByteString -> Maybe L8.ByteString
-processResponse response = case isFailure response of
-  True -> Nothing
-  False -> Just $ responseBody response
+processResponse response =
+  case isFailure response of
+    True -> trace ("HTTP error: " ++ show response) Nothing
+    False -> Just $ responseBody response
